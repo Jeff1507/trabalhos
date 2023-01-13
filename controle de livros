@@ -1,1 +1,1435 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX 1000
+
+typedef struct{
+
+    char *titulo;
+    char **autor;
+    int numAutor;
+    char *editora;
+    int paginas;
+    int edicao;
+    char *idioma;
+    char **assunto;
+    int numAssunto;
+
+}TLivro;
+
+TLivro *_biblioteca;
+int _numLivro = 0;
+
+void menu();//mostra o menu
+void op_menu(int op);//entra nas opcoes do menu
+void mensagemErro(codErro);//mostra as mensagens de erro
+void limparTela();//limpa a tela do console
+void pausa();//pausa a tela do console
+void limparBuffer();//limpa o buffer do espaço de memoria
+int incluir();//inclui os livros
+void listarLivro(TLivro l);//lista um so livro
+TLivro criaLivro();//cria o livro
+int loop(char *str);
+int validarPaginas(int p);//valida o numero de paginas
+int validarEdicao(int ed);//valida a edicao
+void salvarArquivo();//salva o arquivo
+void recuperarDados();//recupera os dados do arquivo
+void menuListar();//lista o submenu
+void op_menuListar(int op);//mostra uma das funcoes de listar
+int listarBiblioteca(int pause);//lista todas as musicas
+int alterar();//mostra a funcao editar 
+int editarLivro(int livroNum);//edita um livro
+int menuAlterarAtributo();//menu de escolha do que vai ser editado
+void menuEditarOp(char *str);//submenu de editar autor e assunto
+void disparaEditar_autor(int op, int livro_num);//dispara tp alteraçao para autor
+void add_autor(int livro_num);//adicona autor
+void edit_autor(int livro_num);//altera um autor
+void imprime_autor(TLivro l);//imprime os autores de um livro
+void excluir_autor(int indice);//exclui o autor
+void disparaEditar_assunto(int op, int livro_num);//dispara tp alteraçao para assunto
+void add_assunto(int livro_num);//adicona assunto
+void edit_assunto(int livro_num);//altera um assunto
+void imprime_assunto(TLivro l);//imprime os assuntos de um livro
+void excluir_assunto(int indice);//exclui o assunto
+int excluir();
+void excluir_livro(int indice);
+//void excluirLivro(int livro_num);
+void reoganizarLivros(int indice);
+void limpaMemoria();//limpa a memoria alocada
+void limparPonteiro();//limpa os *p para *p
+void limparPonteiroAutor(int livro_num);//limpa os poteiros de autor
+void limparPonteiroAssunto(int livro_num);//limpa os poteiros de autor
+
+int main(){
+    int op=0;
+    recuperarDados();
+    while(op!=5)
+    {
+        menu();
+        scanf("%d", &op);
+        limparBuffer();
+        limparTela();
+        op_menu(op);
+    }
+    limpaMemoria();
+    return 0;
+}
+//===============================================================================================================================//
+void menu()
+{
+    limparTela();
+    limparBuffer();
+    
+    printf("===========================");
+    printf("\n    Menu principal\n");
+    printf("\n(1) para incluir livro");
+    printf("\n(2) para listar livro(s)");
+    printf("\n(3) para alterar livro");
+    printf("\n(4) para excluir livro");
+    printf("\n(5) para sair e salvar");
+    printf("\n===========================");
+    printf("\n> ");
+}
+void op_menu(int op){
+    int erro, ops=-1;
+    if(op<1 || op>5)//mostra uma mensagem de erro se a opcao nao for entre 1 e 5
+    {
+        mensagemErro(0);
+    }
+    else if(op<5){//entra nas opcoes escolhidas
+        if(op==1){
+            erro=incluir();
+        }
+        else if(op==2){
+            if(_numLivro <=0)
+            {
+                erro=-2;
+                ops=3;
+            }
+            while(ops!=3)
+            {
+                if(_numLivro>1)
+                {
+                    menuListar();
+                    scanf("%d", &ops);
+                    limparBuffer();
+                    op_menuListar(ops);
+                }
+                else
+                {
+                    ops=3;
+                    op_menuListar(2);
+                }
+            }
+        }
+        else if(op==3)
+        {
+            erro=alterar();
+        }
+        else if (op==4)
+        {
+           erro=excluir();
+        }
+        
+        if(erro<0){//mostra o erro, se alguma operaçao der errado
+            mensagemErro(erro);
+        }
+        if(erro==1){
+            _numLivro++;
+        }
+    }
+    else
+    {
+        printf("Saindo...\n");
+        if(_numLivro>0){    
+            salvarArquivo();
+        }
+    }
+
+}
+void mensagemErro(codErro){
+    switch (codErro)
+    {
+    case 0://erro de opcao invalida
+        printf("Opcao invalida\n");
+        break;
+
+    case -1://erro de lista cheia
+        printf("Lista cheia!\n");
+        break;
+
+    case -2://erro de lista vazia
+        printf("Lista vazia!\n");
+        break;
+
+    case -3://erro de autor = 1
+        printf("\nEh preciso deixar pelo menos 1 autor\n");
+        break;
+
+    case -4://erro de assunto = 1
+        printf("\nEh preciso deixar pelo menos 1 assunto\n");
+        break;
+
+    case -5://erro de numero de paginas <=0
+        printf("\nDigite um numero de paginas maior do que zero\n");
+        break;
+
+    case -6://erro do numero de edicao 
+        printf("\nDigite um ano de edicao maior do que zero\n");
+        break;
+
+    case -8://livro invalido 
+        printf("\nEste livro nao existe :(\n");
+        break;
+
+    case -10://erro de alocaçao
+        printf("erro de alocacao de memoria\n");
+        break;
+    
+    default:printf("ERRO!\n");
+        break;
+    }
+    pausa();
+}
+void limparTela(){
+    system("cls");
+    //system("clear");
+}
+void pausa(){
+    system("pause");
+    //system("PAUSE");
+}
+void limparBuffer(){
+    fflush(stdin);
+    //__fpurge(stdin);
+}
+int loop(char *str)
+{
+    char op[]="x";
+    int resp;
+    
+    while(((strcmp(op,"s"))!=0 || (strcmp(op,"S"))!=0)  && ((strcmp(op,"n"))!=0 || (strcmp(op,"N"))!=0))
+    {
+        printf("%s", str);
+        limparBuffer();
+        gets(op);
+        
+        if((strcmp(op,"s"))==0 || (strcmp(op,"S"))==0 || (strcmp(op,"n"))==0 || (strcmp(op,"N"))==0)
+        {
+            break;
+        }
+        printf("\nOpcao invalida!\n");
+        
+    }
+    if((strcmp(op,"n"))==0)
+    {
+        resp=strcmp(op,"n");
+        return resp;
+    }
+    else if((strcmp(op,"N"))==0)
+    {
+        resp=strcmp(op,"N");
+        return resp;
+    }
+    else
+    {
+        return 5;
+    }
+}
+TLivro criaLivro(){
+    TLivro l;
+    char strAux[100], op;
+    int add, erro=-1;
+
+    printf("\nTitulo: ");
+    gets(strAux);
+    l.titulo=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+    strcpy(l.titulo, strAux);
+    limparBuffer();
+    
+    //adiciona mais de 1 autor
+    add=1;
+    l.numAutor=0;
+    while(add){
+        printf("\nAutor %d: ", l.numAutor+1);
+        gets(strAux);
+
+        if(l.numAutor==0){
+            l.autor=(char**)malloc(1*sizeof(char*));
+        }
+        else{
+            l.autor=(char**)realloc(l.autor, (l.numAutor+1) *sizeof(char*));
+        }
+        if(!l.autor){
+            printf("Erro na criacao do vetor autor\n");
+            exit(1);
+        }
+        l.autor[l.numAutor]=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+        if(!l.autor[l.numAutor]){
+            printf("Erro ao criar autor[%d]!\n", l.numAutor);
+            exit(1);
+        }
+        strcpy(l.autor[l.numAutor++], strAux);
+
+        if((loop("Adicionar autor(es) [S/N]? "))==0)
+        {
+            add=0;
+        }
+
+        /*op='x';//***ERRO DE LOGICA
+        while(op!='s' && op!='n'){//verifica se e valida a opcao do usuario
+            printf("Adicionar autor(es)[S/N]? ");
+            scanf("%c", &op);
+            limparBuffer();
+            op=tolower(op);
+            if(op=='s'|| op=='n'){
+                break;
+            }
+            printf("\nOpcao invalida!\n");
+        }
+        if(op=='n'){
+            add=0;
+        }*/
+    }
+    add=1;
+    l.numAssunto=0;
+    while(add){
+        printf("\nAssunto %d: ", l.numAssunto+1);
+        gets(strAux);
+
+        if(l.numAssunto==0){
+            l.assunto=(char**)malloc(1*sizeof(char*));
+        }
+        else{
+            l.assunto=(char**)realloc(l.assunto, (l.numAssunto+1) *sizeof(char*));
+        }
+        if(!l.assunto){
+            printf("Erro na criacao do vetor assunto\n");
+            exit(1);
+        }
+        l.assunto[l.numAssunto]=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+        if(!l.assunto[l.numAssunto]){
+            printf("Erro ao criar assunto[%d]!\n", l.numAssunto);
+            exit(1);
+        }
+        strcpy(l.assunto[l.numAssunto++], strAux);
+
+        if((loop("Adicionar assunto(s) [S/N]? "))==0)
+        {
+            add=0;
+        }
+
+        /*op='x';//***ERRO DE LOGICA
+        while(op!='s' && op!='n'){//verifica se e valida a opcao do usuario
+            printf("Adicionar assunto(s)[S/N]? ");
+            scanf("%c", &op);
+            limparBuffer();
+            op=tolower(op);
+            if(op=='s' || op=='n'){
+                break;
+            }
+            printf("\nOpcao invalida!\n");
+        }
+        if(op=='n'){
+            add=0;
+        }*/
+    }
+
+    printf("\nEditora: ");
+    gets(strAux);
+    l.editora=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+    strcpy(l.editora, strAux);
+    limparBuffer();
+
+    printf("\nIdioma: ");
+    gets(strAux);
+    l.idioma=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+    strcpy(l.idioma, strAux);
+    limparBuffer();
+
+    erro=-1;//erro vai receber validarPaginas(). Se validarPaginas()<0 -> laco se repete. Se validarPaginas()>=0 -> sai do laco
+    while(erro<0)
+    {
+        printf("\nNumero de paginas: ");
+        scanf("%d", &l.paginas);
+        limparBuffer();
+        erro=validarPaginas(l.paginas);
+
+        if(erro<0){//mostra o erro
+            mensagemErro(erro);
+        }
+    }
+    erro=-1;//erro vai receber validarEdicao(). Se validarEdicao()<0 -> laco se repete. Se validaredicao()>=0 -> sai do laco
+    while(erro<0)
+    {
+        printf("\nAno de edicao: ");
+        scanf("%d", &l.edicao);
+        limparBuffer();
+        erro=validarEdicao(l.edicao);
+
+        if(erro<0){//mostra o erro
+            mensagemErro(erro);
+        }
+    }
+
+    return l;
+}
+int validarPaginas(int p)
+{
+    if(p<=0){
+        return -5;
+    }
+    else{
+        return 1;
+    }
+}
+int validarEdicao(int ed)
+{
+    if(ed<=0){
+        return -6;
+    }
+    else{
+        return 1;
+    }
+}
+int incluir()
+{
+    if(_numLivro>=MAX){// se a lista estiver cheia retorna -1
+        return -1;
+    }
+    if(_numLivro==0){//se a lista estiver vazia aloca um espaço
+        _biblioteca=(TLivro*)malloc(1*sizeof(TLivro));
+    }
+    else{//se a lista n estiver vazia, realoca um espaço a cada livro incluido
+        _biblioteca=(TLivro*)realloc(_biblioteca, (_numLivro+1)*sizeof(TLivro));
+    }
+    if(!_biblioteca){
+        return -10;
+    }
+    printf("Livro %d\n", _numLivro+1);
+    _biblioteca[_numLivro]=criaLivro();
+    limparTela();
+    listarLivro(_biblioteca[_numLivro]);
+    printf("\n");
+    pausa();
+    return 1;
+}
+void listarLivro(TLivro l){
+
+    int i;
+    printf("Titulo: %s", l.titulo);
+    printf("\nAutor(es): ");
+    for(i=0;i<l.numAutor;i++)
+    {
+        if(i<(l.numAutor-1))
+        {
+            printf("%s, ", l.autor[i]);
+        }
+        else
+        {
+            printf("%s", l.autor[i]);
+        }
+    }
+    printf("\nAssunto(s): ");
+    for(i=0;i<l.numAssunto;i++)
+    {
+        if(i<(l.numAssunto-1))
+        {
+            printf("%s, ", l.assunto[i]);
+        }
+        else
+        {
+            printf("%s", l.assunto[i]);
+        }
+    }
+    printf("\nEditora: %s", l.editora);
+    printf("\nIdioma: %s", l.idioma);
+    printf("\nNumero de paginas: %d", l.paginas);
+    printf("\nAno de Edicao: %d", l.edicao);
+    printf("\n");
+}
+void menuListar()
+{
+    limparTela();
+    printf("=================================");
+    printf("\n    Listar livro(s)\n");
+    printf("\n(1) para listar um livro");
+    printf("\n(2) para listar todos os livro");
+    printf("\n(3) voltar");
+    printf("\n=================================");
+    printf("\n> ");
+}
+void op_menuListar(int op)
+{
+    int erro, livro_num;
+    if(op<1 || op>3)
+    {
+        mensagemErro(0);
+    }
+    else if(op<3)
+    {
+        limparTela();
+        if(op==1)//lista so uma musica
+        {
+            if(_numLivro==1)
+            {
+                listarLivro(_biblioteca[0]);
+                pausa();
+                return;
+            }
+            livro_num=-1;
+            while(livro_num<1 || livro_num>_numLivro)
+            {
+                limparTela();
+                printf("Digite o livro que deseja ver(%d a %d): ", 1, _numLivro);
+                scanf("%d", &livro_num);
+                if(livro_num<1 || livro_num>_numLivro)
+                {
+                    mensagemErro(-8);
+                    continue;//***
+                }
+                limparTela();
+                listarLivro(_biblioteca[livro_num-1]);
+                pausa();
+            }
+        }
+        else if(op==2)
+        {
+            erro=listarBiblioteca(1);
+        }
+        if(erro<0)
+        {
+            mensagemErro(erro);
+        }
+    }
+    
+
+}
+int listarBiblioteca(int pause)
+{
+    int i;
+    if(_numLivro<=0)
+    {
+        return -2;
+    }
+    limparTela();
+    for(i=0;i<_numLivro;i++)
+    {
+        printf("Livro %d\n",i+1);
+        listarLivro(_biblioteca[i]);
+        printf("\n");
+    }
+    if(pause)
+    {
+        pausa();
+    }
+    return 1;
+}
+int alterar()
+{
+    int livro_num=-1,resp;
+
+    if(_numLivro<=0)
+    {
+        return -2;
+    }
+    while(livro_num<0 || livro_num>=_numLivro)
+    {
+        listarBiblioteca(0);
+        if(_numLivro>1)
+        {
+            printf("Digite o livro que deseja editar(%d a %d): ", 1, _numLivro);
+            scanf("%d", &livro_num);
+            limparBuffer();
+            printf("\n");
+        }
+        else
+        {
+            livro_num=1;
+        }
+        livro_num--;
+        if(livro_num<0 || livro_num>=_numLivro)
+        {
+            mensagemErro(-8);
+        }
+        else
+        {
+            resp=editarLivro(livro_num);
+        }
+    }
+    limparTela();
+    if(resp>0)
+    {
+        listarLivro(_biblioteca[livro_num]);
+    }
+    //return 10;
+    //pausa();
+
+}
+int editarLivro(int livro_num)
+{
+    int atributo=1,erro=-1,opEditar;
+    char strAux[100];
+    while(atributo>0)
+    {
+        atributo=menuAlterarAtributo();
+        limparTela();
+        switch (atributo)
+        {
+            case 1:
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+                printf("\n(Novo)titulo: ");
+                gets(strAux);
+                _biblioteca[livro_num].titulo=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+                strcpy(_biblioteca[livro_num].titulo, strAux);
+                limparBuffer();
+                break;
+
+            case 2:
+                opEditar=1;
+                while(1)
+                {
+                    menuEditarOp("Autor");
+                    scanf("%d", &opEditar);
+                    disparaEditar_autor(opEditar, livro_num);
+        
+                    if(opEditar==4)
+                    {
+                        break;
+                    }
+                }
+                /*limparTela();
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+                limparBuffer();*/
+                break;
+
+            case 3:
+                opEditar=1;
+                while(1)
+                {
+                    menuEditarOp("Assunto");
+                    scanf("%d", &opEditar);
+                    disparaEditar_assunto(opEditar, livro_num);
+                    
+                    if(opEditar==4)
+                    {
+                        break;
+                    }
+                }
+                /*limparTela();
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+                limparBuffer();*/
+                break;
+
+            case 4:
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+                printf("\n(Nova)editora: ");
+                gets(strAux);
+                _biblioteca[livro_num].editora=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+                strcpy(_biblioteca[livro_num].editora, strAux);
+                limparBuffer();
+                break;
+
+            case 5:
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+                printf("\n(Novo)idioma: ");
+                gets(strAux);
+                _biblioteca[livro_num].idioma=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+                strcpy(_biblioteca[livro_num].idioma, strAux);
+                limparBuffer();
+                break;
+
+            case 6:
+                erro=-1;
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+
+                while(erro<0)
+                {
+                    printf("\n(Novo)numero de paginas: ");
+                    scanf("%d", &_biblioteca[livro_num].paginas);
+                    limparBuffer();
+                    erro=validarPaginas(_biblioteca[livro_num].paginas);
+                    if(erro<0)
+                    {
+                        mensagemErro(erro);
+                    }
+                }
+                break;
+
+            case 7:
+                erro=-1;
+                printf("Dados do livro\n");
+                listarLivro(_biblioteca[livro_num]);
+
+                while(erro<0)
+                {
+                    printf("\n(Novo)ano de edicao: ");
+                    scanf("%d", &_biblioteca[livro_num].edicao);
+                    limparBuffer();
+                    erro=validarEdicao(_biblioteca[livro_num].edicao);
+                    if(erro<0)
+                    {
+                        mensagemErro(erro);
+                    }
+                }
+                break;
+
+            case 8:
+                return -1;
+                break;
+        }
+       /* op='x';
+        while(op!='s' && op!='n')
+        {
+            printf("Deseja continuar(s/n)?: ");
+            scanf("%c", &op);
+            limparBuffer();
+            op=tolower(op);
+
+            if(op!='s' && op!='n')
+            {
+                mensagemErro(0);
+            }
+        }
+        if(op=='n')
+        {
+            atributo=-1;
+        }*/
+    }
+    return 1;
+}
+int menuAlterarAtributo()
+{
+    int op=0;
+    while(op<1 || op>7)
+    {
+        limparTela();
+        printf("=============================");
+        printf("\n    Alterar livro\n");
+        printf("\n(1) editar titulo\n");
+        printf("(2) editar autor(es)\n");
+        printf("(3) editar assunto(s)\n");
+        printf("(4) editar editora\n");
+        printf("(5) editar idioma\n");
+        printf("(6) editar numero de paginas\n");
+        printf("(7) editar ano de edicao\n");
+        printf("(8) voltar\n");
+        printf("=============================");
+        printf("\n> ");
+        scanf("%d", &op);
+        limparBuffer();
+        if(op<1 || op>8)
+        {
+            mensagemErro(0);
+        }
+        else
+        {
+            return op;
+        }
+        
+    }
+    //return 10;
+}
+void menuEditarOp(char *str)
+{
+    limparTela();
+    printf("=============================\n");
+    printf("     Editar %s\n", str);
+    printf("\n(1) Incluir %s\n", str);
+    printf("(2) Editar %s\n", str);
+    printf("(3) Excluir %s\n", str);
+    printf("(4) Voltar\n");
+    printf("=============================");
+    printf("\n> ");
+}
+void disparaEditar_autor(int op, int livro_num)
+{
+    //int erro=1,opS=-1;//***
+    if(op<1 || op>4)
+    {
+        mensagemErro(0);
+    }
+    else if(op<4)
+    {
+        if(op==1)
+        {
+            add_autor(livro_num);
+            printf("\nAutor adicionado!\n");
+            pausa();
+        }
+        else if(op==2)
+        {
+            edit_autor(livro_num);
+        }
+        else if(op==3)
+        {
+            excluir_autor(livro_num);
+        }
+        
+    }
+    /*if(erro<=0)
+    {
+        mensagemErro(erro);
+    }*/
+}
+void add_autor(int livro_num)
+{
+    char strAux[100];
+    limparTela();
+    imprime_autor(_biblioteca[livro_num]);
+    printf("\nDigite o autor que deseja adicionar(Autor %d): ", _biblioteca[livro_num].numAutor+1 );
+    limparBuffer();
+    gets(strAux);
+
+    _biblioteca[livro_num].autor=(char**)realloc(_biblioteca[livro_num].autor, (_biblioteca[livro_num].numAutor+1)*sizeof(char*));
+
+    if(!_biblioteca[livro_num].autor)
+    {
+        printf("Erro na adicao do autor(1)\n");
+        exit(1);
+    }
+
+    _biblioteca[livro_num].autor[_biblioteca[livro_num].numAutor]=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+
+    if(!_biblioteca[livro_num].autor[_biblioteca[livro_num].numAutor])
+    {
+        printf("Erro na adicao do autor(2)\n");
+        exit(1);
+    }
+
+    strcpy(_biblioteca[livro_num].autor[_biblioteca[livro_num].numAutor], strAux);
+    _biblioteca[livro_num].numAutor++;
+
+}
+void edit_autor(int livro_num)
+{
+    int op_autor;
+    char  strAux[100];
+    while(1)
+    {
+        limparTela();
+        imprime_autor(_biblioteca[livro_num]);
+
+        if(_biblioteca[livro_num].numAutor>1)
+        {
+            printf("\nDigite o autor que deseja editar(%d a %d)", 1, _biblioteca[livro_num].numAutor);
+            printf("\nDigite 0 p/ voltar");
+            printf("\n> ");
+            scanf("%d", &op_autor);
+            limparBuffer();
+        }
+        else
+        {
+            op_autor=1;
+        }
+        if((op_autor<1) || (op_autor>_biblioteca[livro_num].numAutor))
+        {
+            if(op_autor==0)
+            {
+                return;
+            }
+            else
+            {
+                mensagemErro(0);
+            }
+            
+        }
+        else
+        {
+            limparTela();
+           printf("\n(Novo)Autor %d: ", op_autor);
+           limparBuffer();
+           gets(strAux);
+           limparBuffer();
+           if((loop("Deseja editar este autor[S/N]? ")==0))
+           {
+                return;
+           }
+           else
+           {
+                _biblioteca[livro_num].autor[op_autor-1]=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+
+                if(!_biblioteca[livro_num].autor[op_autor-1])
+                {
+                    printf("Erro na alteracao do autor!\n");
+                    exit(1);
+                }
+                strcpy(_biblioteca[livro_num].autor[op_autor-1], strAux);
+                printf("\nAutor alterado com sucesso!\n");
+                pausa();
+                break;
+           }
+        }
+    }
+}
+void imprime_autor(TLivro l)
+{
+    int i;
+    for(i=0;i<l.numAutor;i++)
+    {
+        printf("Autor %d: %s\n", i+1, l.autor[i]);
+    }
+}
+void excluir_autor(int indice)
+{
+    int op=-1;
+    if(_biblioteca[indice].numAutor<=1)
+    {
+        mensagemErro(-3);
+    }
+    else
+    {
+        /*for(int i=0;i<_biblioteca[indice].numAutor;i++)
+        {
+            printf("Autor %d: %s", i+1, _biblioteca[indice].autor[i]);
+            printf("\n");
+        }*/
+        while(op<0 || op>=_biblioteca[indice].numAutor)
+        {
+            limparTela();
+            imprime_autor(_biblioteca[indice]);
+            printf("\nDigite o autor que deseja excluir(%d a %d)", 1, _biblioteca[indice].numAutor);
+            printf("\nDigite 0 p/ voltar");
+            printf("\n> ");
+            scanf("%d", &op);
+            op--;
+            limparBuffer();
+            if(op<0 || op>=_biblioteca[indice].numAutor)
+            {
+                if(op==-1)
+                {
+                    return;
+                }
+                else
+                {
+                    mensagemErro(0);
+                }
+                
+            }
+            else
+            {
+                if((loop("Deseja excluir este autor [S/N]? ")==0))
+                {
+                    return;
+                }
+                else
+                {
+                    if((_biblioteca[indice].numAutor-1)==op)
+                    {
+                        free(_biblioteca[indice].autor[op]);
+                        _biblioteca[indice].numAutor--;
+                    }
+                    else//reoganiza os autores
+                    {
+                        for(int i=op;i<_biblioteca[indice].numAutor;i++)
+                        {
+                            _biblioteca[indice].autor[i]=_biblioteca[indice].autor[i+1];
+                        }
+                        free(_biblioteca[indice].autor[_biblioteca[indice].numAutor]);
+                        _biblioteca[indice].numAutor--;
+                    }
+                    //limparTela();
+                    printf("\nAutor excluido com sucesso!\n");
+                    pausa();
+                    break;
+                }
+            }
+        }  
+    }
+}
+void disparaEditar_assunto(int op, int livro_num)
+{
+    //int erro=1,opS=-1;//*** variaveis inuteis
+    if(op<1 || op>4)
+    {
+        mensagemErro(0);
+    }
+    else if(op<4)
+    {
+        if(op==1)
+        {
+            add_assunto(livro_num);
+            printf("\nAssunto adicionado!\n");
+            pausa();
+        }
+        else if(op==2)
+        {
+            edit_assunto(livro_num);
+        }
+        else if(op==3)
+        {
+            excluir_assunto(livro_num);
+        }
+        
+    }
+    /*if(erro<=0)
+    {
+        mensagemErro(erro);
+    }*/
+}
+void add_assunto(int livro_num)
+{
+    char strAux[100];
+    limparTela();
+    imprime_assunto(_biblioteca[livro_num]);
+    printf("\nDigite o assunto que deseja adicionar(Assunto %d): ", _biblioteca[livro_num].numAssunto+1 );
+    limparBuffer();
+    gets(strAux);
+
+    _biblioteca[livro_num].assunto=(char**)realloc(_biblioteca[livro_num].assunto, (_biblioteca[livro_num].numAssunto+1)*sizeof(char*));
+
+    if(!_biblioteca[livro_num].assunto)
+    {
+        printf("Erro na adicao do assunto(1)\n");
+        exit(1);
+    }
+
+    _biblioteca[livro_num].assunto[_biblioteca[livro_num].numAssunto]=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+
+    if(!_biblioteca[livro_num].assunto[_biblioteca[livro_num].numAssunto])
+    {
+        printf("Erro na adicao do assunto(2)\n");
+        exit(1);
+    }
+
+    strcpy(_biblioteca[livro_num].assunto[_biblioteca[livro_num].numAssunto], strAux);
+    _biblioteca[livro_num].numAssunto++;
+
+}
+void edit_assunto(int livro_num)
+{
+    int op_assunto;
+    char  strAux[100];
+    while(1)
+    {
+        limparTela();
+        imprime_assunto(_biblioteca[livro_num]);
+
+        if(_biblioteca[livro_num].numAssunto>1)
+        {
+            printf("\nDigite o assunto que deseja editar(%d a %d): ", 1, _biblioteca[livro_num].numAssunto);
+            printf("\nDigite 0 p/ voltar");
+            printf("\n> ");
+            scanf("%d", &op_assunto);
+            limparBuffer();
+        }
+        else
+        {
+            op_assunto=1;
+        }
+        if((op_assunto<1) || (op_assunto>_biblioteca[livro_num].numAssunto))
+        {
+            if(op_assunto==0)
+            {
+                return;
+            }
+            else
+            {
+                mensagemErro(0);
+            }
+            
+        }
+        else
+        {
+            limparTela();
+           printf("\n(Novo)Assunto %d: ", op_assunto);
+           limparBuffer();
+           gets(strAux);
+           limparBuffer();
+           if((loop("Deseja editar este assunto[S/N]? ")==0))
+           {
+                return;
+           }
+           else
+           {
+                _biblioteca[livro_num].assunto[op_assunto-1]=(char*)malloc((strlen(strAux)+1)*sizeof(char));
+
+                if(!_biblioteca[livro_num].assunto[op_assunto-1])
+                {
+                    printf("Erro na alteracao do assunto!\n");
+                    exit(1);
+                }
+                strcpy(_biblioteca[livro_num].assunto[op_assunto-1], strAux);
+                printf("\nAssunto alterado com sucesso!\n");
+                pausa();
+                break;
+           }
+        }
+    }
+}
+void imprime_assunto(TLivro l)
+{
+    int i;
+    for(i=0;i<l.numAssunto;i++)
+    {
+        printf("Assunto %d: %s\n", i+1, l.assunto[i]);
+    }
+}
+void excluir_assunto(int indice)
+{
+    int op=-1;
+    if(_biblioteca[indice].numAssunto<=1)
+    {
+        mensagemErro(-4);
+    }
+    else
+    {
+        /*for(int i=0;i<_biblioteca[indice].numAssunto;i++)
+        {
+            printf("Autor %d: %s", i+1, _biblioteca[indice].autor[i]);
+            printf("\n");
+        }*/
+        while(op<0 || op>=_biblioteca[indice].numAssunto)
+        {
+            limparTela();
+            imprime_assunto(_biblioteca[indice]);
+            printf("\nDigite o assunto que deseja excluir(%d a %d): ", 1, _biblioteca[indice].numAssunto);
+            printf("\nDigite 0 p/ voltar");
+            printf("\n> ");
+            scanf("%d", &op);
+            op--;
+            limparBuffer();
+            if(op<0 || op>=_biblioteca[indice].numAssunto)
+            {
+                if(op==-1)
+                {
+                    return;
+                }
+                else
+                {
+                    mensagemErro(0);
+                }
+                
+            }
+            else
+            {
+                if((loop("Deseja excluir este assunto [S/N]? ")==0))
+                {
+                    return;
+                }
+                else
+                {
+                    if((_biblioteca[indice].numAssunto-1)==op)
+                    {
+                        free(_biblioteca[indice].assunto[op]);
+                        _biblioteca[indice].numAssunto--;
+                    }
+                    else//reoganiza os assuntos
+                    {
+                        for(int i=op;i<_biblioteca[indice].numAssunto;i++)
+                        {
+                            _biblioteca[indice].assunto[i]=_biblioteca[indice].assunto[i+1];
+                        }
+                        free(_biblioteca[indice].assunto[_biblioteca[indice].numAssunto]);
+                        _biblioteca[indice].numAssunto--;
+                    }
+                    //limparTela();
+                    printf("\nAssunto excluido com sucesso!\n");
+                    pausa();
+                    break;
+                }
+            }
+        }
+        
+    }
+}
+int excluir()
+{
+    int op;
+    if(_numLivro<=0)
+    {
+        return -2;
+    }
+    else if(_numLivro==1)
+    {
+        listarLivro(_biblioteca[0]);
+        if((loop("\nDeseja excluir este livro [S/N]? "))==0)
+        {
+            //return;
+        }
+        else
+        {
+            excluir_livro(1);
+            //excluirLivro(0);
+            limparTela();
+            printf("Seu livro foi excluido com sucesso!\n");
+            pausa();
+        }
+    }
+    else
+    {
+        op=-2;
+        while(op<0 || op>=_numLivro)
+        {
+            listarBiblioteca(0);
+            printf("Digite o livro que deseja excluir(%d a %d)", 1, _numLivro);
+            printf("\nDigite 0 p/ voltar");
+            printf("\n> ");
+            scanf("%d", &op);
+            limparBuffer();
+            op--;
+            if(op<0 || op>=_numLivro)
+            {
+                if(op==-1)
+                {
+                    break;
+                }
+                else
+                {
+                    mensagemErro(-8);
+                }  
+            }
+            else
+            {
+                limparTela();
+                listarLivro(_biblioteca[op]);
+                if((loop("\nDeseja excluir este livro [S/N]? "))==0)
+                {
+                    //return;
+                }
+                else
+                {
+                    excluir_livro(op);
+                    //excluirLivro(op);
+                    limparTela();
+                    printf("Seu livro foi excluido com sucesso!\n");
+                    pausa();
+                    
+                }
+                break;
+            }
+        }
+        
+    }
+    return 10;
+}
+void excluir_livro(int indice)
+{
+    if(_numLivro==1)
+    {
+        FILE *pArq=fopen("bibliotecaBD.txt","w");
+        if(pArq==NULL)
+        {
+            printf("Erro ao abrir arquivo\n");
+            exit(0);
+        }
+        fclose(pArq);
+        /*if(remove("bibliotecaBD.txt") != 0)
+        {
+            printf("Nao foi possivel deletar o arquivo\n");
+        }*/
+        _numLivro=0;
+    }
+    else if((_numLivro-1)==indice)
+    {
+        _numLivro--;
+    }
+    else
+    {
+        reoganizarLivros(indice);
+    }
+}
+/*void excluirLivro(int livro_num)
+{
+    if((_numLivro==1) && (livro_num==_numLivro))
+    {
+        limparPonteiroAssunto(livro_num);
+        limparPonteiroAutor(livro_num);
+        _numLivro--;
+    }
+    else
+    {
+        reoganizarLivros(livro_num);
+    }
+}*/
+void reoganizarLivros(int indice)
+{
+    for(int i=indice;i<_numLivro-1;i++)
+    {
+        _biblioteca[i]=_biblioteca[i+1];
+    }
+    _numLivro--;
+}
+void limpaMemoria()
+{
+    limparPonteiro();
+    free(_biblioteca);
+}
+void limparPonteiro()
+{
+    int i;
+    for(i=0;i<_numLivro;i++)
+    {
+        limparPonteiroAutor(i);
+        limparPonteiroAssunto(i);
+    }
+}
+void limparPonteiroAutor(int livro_num)
+{
+    for(int i=0;i<_biblioteca[livro_num].numAutor;i++)
+    {
+        free(_biblioteca[livro_num].autor[i]);
+    }
+}
+void limparPonteiroAssunto(int livro_num)
+{
+    for(int i=0;i<_biblioteca[livro_num].numAssunto;i++)
+    {
+        free(_biblioteca[livro_num].assunto[i]);
+    }
+}
+void salvarArquivo()
+{
+    int i, j;
+    FILE *pArq;
+
+    pArq=fopen("bibliotecaBD.txt", "w");
+    if(pArq==NULL)
+    {
+        printf("ERRO: nao foi possivel criar o arquivo :( \n");
+        exit(0);
+    }
+    for(i=0;i< _numLivro;i++)
+    {
+        fprintf(pArq, "%s;", _biblioteca[i].titulo);
+        fprintf(pArq, "%s;", _biblioteca[i].editora);
+        fprintf(pArq, "%s;", _biblioteca[i].idioma);
+        fprintf(pArq, "%d;", _biblioteca[i].paginas);
+        fprintf(pArq, "%d;", _biblioteca[i].edicao);
+
+        for(j=0;j<_biblioteca[i].numAutor;j++)
+        {
+            fprintf(pArq, "%s@", _biblioteca[i].autor[j]);
+        }
+        for(j=0;j<_biblioteca[i].numAssunto;j++)
+        {
+            fprintf(pArq, "%s#", _biblioteca[i].assunto[j]);
+        }
+        fprintf(pArq, "%c", '\n');
+    }
+    fclose(pArq);
+}
+void recuperarDados()
+{
+    int i,sep,j;
+    char str[100],c;
+    FILE *pArq;
+    pArq=fopen("bibliotecaBD.txt", "r");
+    if(pArq)
+    {
+        i=0;//usado pra indexizar string
+        sep=0;//conta os separadores -> ;/@/#
+        while(!feof(pArq))
+        {
+            c=fgetc(pArq);
+            if((c!='\n') && (c!=';') && (c!='@') && (c!='#') && (c!=EOF))
+            {
+                str[i]=c;
+                i++;
+            }
+            else if((c=='\n') || (c==';') || (c=='@') || (c=='#'))
+            {
+                str[i]='\0';
+                i=0;
+                if(c==';')
+                {
+                    if(sep==0)
+                    {
+                        if(_numLivro==0)
+                        {
+                            _biblioteca=(TLivro*)malloc(1*sizeof(TLivro));
+                        }
+                        else
+                        {
+                            _biblioteca=(TLivro*)realloc(_biblioteca, (_numLivro + 1)*sizeof(TLivro));
+                        }
+                        _biblioteca[_numLivro].titulo=(char*)malloc(strlen(str)+1*sizeof(char));
+                        strcpy(_biblioteca[_numLivro].titulo, str);
+                        _biblioteca[_numLivro].numAutor=0;
+                        _biblioteca[_numLivro].numAssunto=0;
+                        sep++;
+                    }
+                    else if(sep==1)
+                    {
+                        _biblioteca[_numLivro].editora=(char*)malloc(strlen(str)+1*sizeof(char));
+                        strcpy(_biblioteca[_numLivro].editora, str);
+                        sep++;
+                    }
+                    else if(sep==2)
+                    {
+                        _biblioteca[_numLivro].idioma=(char*)malloc(strlen(str)+1*sizeof(char));
+                        strcpy(_biblioteca[_numLivro].idioma, str);
+                        sep++;
+                    }
+                    else if(sep==3)
+                    {
+                        _biblioteca[_numLivro].paginas=atoi(str);
+                        sep++;
+                    }
+                    else if(sep==4)
+                    {
+                        _biblioteca[_numLivro].edicao=atoi(str);
+                        sep=0;
+                    }
+                }
+                else if(c=='@')
+                {
+                    if(sep==0)
+                    {
+                        _biblioteca[_numLivro].autor=(char**)malloc(1*sizeof(char*));
+                        j=_biblioteca[_numLivro].numAutor;
+                        _biblioteca[_numLivro].autor[j]=(char*)malloc((strlen(str)+1)*sizeof(char*));
+                        strcpy(_biblioteca[_numLivro].autor[j], str);
+                        _biblioteca[_numLivro].numAutor++;
+                    }
+                    else
+                    {
+                        j=_biblioteca[_numLivro].numAutor;
+                        _biblioteca[_numLivro].autor=(char**)realloc(_biblioteca[_numLivro].autor, (j+1) *sizeof(char*));
+                        _biblioteca[_numLivro].autor[j]=(char*)malloc((strlen(str)+1)*sizeof(char*));
+                        strcpy(_biblioteca[_numLivro].autor[j], str);
+                        _biblioteca[_numLivro].numAutor++;
+
+                    }
+                    sep=-1;
+                }
+                else if(c=='#')
+                {
+                    if(sep==-1)
+                    {
+                        _biblioteca[_numLivro].assunto=(char**)malloc(1*sizeof(char*));
+                        j=_biblioteca[_numLivro].numAssunto;
+                        _biblioteca[_numLivro].assunto[j]=(char*)malloc((strlen(str)+1)*sizeof(char*));
+                        strcpy(_biblioteca[_numLivro].assunto[j], str);
+                        _biblioteca[_numLivro].numAssunto++;
+                    }
+                    else
+                    {
+                        j=_biblioteca[_numLivro].numAssunto;
+                        _biblioteca[_numLivro].assunto=(char**)realloc(_biblioteca[_numLivro].assunto, (j+1) *sizeof(char*));
+                        _biblioteca[_numLivro].assunto[j]=(char*)malloc((strlen(str)+1)*sizeof(char*));
+                        strcpy(_biblioteca[_numLivro].assunto[j], str);
+                        _biblioteca[_numLivro].numAssunto++;
+
+                    }
+                    sep=-2;
+                }
+                else
+                {
+                    sep=0;
+                    _numLivro++;
+                }
+            }
+        }
+    }
+    fclose(pArq);
+}
 
